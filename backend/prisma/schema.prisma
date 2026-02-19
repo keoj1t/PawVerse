@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  PARTNER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum ServiceCategory {
+  VET
+  GROOMING
+  TRAINING
+  HOTEL
+}
+
+model User {
+  id        String    @id @default(uuid())
+  phone     String?   @unique
+  password  String?
+  name      String?
+  role      Role      @default(OWNER)
+  city      String    @default("Astana")
+  googleId  String?   @unique
+  telegramId String?   @unique
+  pets      Pet[]
+  services  Service[]
+  createdAt DateTime  @default(now())
+}
+
+model Pet {
+  id               String             @id @default(uuid())
+  name             String
+  breed            String
+  age              Int
+  weight           Float
+  avatarUrl        String?
+  owner            User               @relation(fields: [ownerId], references: [id])
+  ownerId          String
+  hasGps           Boolean            @default(false)
+  deviceId         String?
+  isLost           Boolean            @default(false)
+  lat              Float?
+  lng              Float?
+  bookings         Booking[]
+  nutritionEntries NutritionEntry[]
+  createdAt        DateTime           @default(now())
+}
+
+model NutritionEntry {
+  id        String   @id @default(uuid())
+  foodName  String
+  grams     Float
+  calories  Float
+  protein   Float
+  fat       Float
+  carbs     Float
+  date      DateTime @default(now())
+  pet       Pet      @relation(fields: [petId], references: [id])
+  petId     String
+  createdAt DateTime @default(now())
+}
+
+model Service {
+  id          String          @id @default(uuid())
+  title       String
+  category    ServiceCategory
+  price       Float
+  city        String
+  description String?
+  owner       User?           @relation(fields: [ownerId], references: [id])
+  ownerId     String?
+  createdAt   DateTime        @default(now())
+  bookings    Booking[]
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  status      BookingStatus @default(PENDING)
+  bookingDate DateTime
+  pet         Pet           @relation(fields: [petId], references: [id])
+  petId       String
+  service     Service       @relation(fields: [serviceId], references: [id])
+  serviceId   String
+  createdAt   DateTime      @default(now())
+}

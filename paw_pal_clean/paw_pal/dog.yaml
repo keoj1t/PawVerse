@@ -1,0 +1,4 @@
+train: C:/Users/Aisanabatalova/paw/paw_pal_clean/paw_pal/disease_detection/train/images
+val: C:/Users/Aisanabatalova/paw/paw_pal_clean/paw_pal/disease_detection/valid/images
+nc: 3
+names: ["keratosis", "nasal_discharge", "skin_lesions"]

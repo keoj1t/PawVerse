@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: pawverse_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: pawversee
+      POSTGRES_PASSWORD: pawversee123
+      POSTGRES_DB: pawverse_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -1,0 +1,55 @@
+# ==== OS / Editor ====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ==== Logs ====
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ==== Environment / Secrets ====
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# ==== Node.js ====
+**/node_modules/
+dist/
+build/
+coverage/
+
+# ==== Python ====
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+**/.venv/
+**/venv/
+
+# ==== ML / Training Artifacts ====
+runs/
+**/runs/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.engine
+
+# ==== Temporary ====
+*.tmp
+*.temp
+*.bak

@@ -1,0 +1,896 @@
+﻿<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PawVerse Care — Медицинские услуги для питомцев</title>
+  <meta name="description" content="PawVerse Care — экосистема медицинских услуг для питомцев" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+
+<body>
+
+  <!-- Float background icons -->
+  <div class="float-icons" aria-hidden="true">
+    <span class="float-icon paw i1"></span>
+    <span class="float-icon med i2"></span>
+    <span class="float-icon paw i3"></span>
+    <span class="float-icon med i4"></span>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toastContainer"></div>
+
+  <!-- Loader overlay -->
+  <div id="loaderOverlay">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- ===== HEADER ===== -->
+  <header>
+    <a class="nav-link" data-page="hero">Главная</a>
+    <a class="nav-link" data-page="auth" data-auth="false">Вход</a>
+    <a class="nav-link" data-page="services" data-auth="true" hidden>Услуги</a>
+    <a class="nav-link" data-page="features" data-auth="true" hidden>Функции</a>
+    <a class="nav-link" data-page="about" data-auth="true" hidden>О нас</a>
+    <a class="nav-link" data-page="contact" data-auth="true" hidden>Контакты</a>
+    <div class="pawcoins-header" id="pawCoinsHeader" style="display:none;cursor:pointer;" onclick="openQuizFromCoins()">
+      <i class="fas fa-coins" style="color:#FFD700"></i>
+      <span id="pawCoinsCount">0</span>
+    </div>
+    <button class="header-btn" id="cabinetToggle" aria-label="Личный кабинет" type="button" style="display:none;">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <button class="header-btn" id="themeToggle" aria-label="Тема" type="button">
+      <i class="fa-solid fa-moon"></i>
+    </button>
+    <div class="lang-switch" id="langSwitch">
+      <button class="header-btn" id="langToggle" aria-label="Язык" type="button"
+        style="border-radius:14px;width:auto;padding:6px 12px;font-size:0.78rem;font-weight:700;">
+        <span id="langCode">RU</span>
+      </button>
+      <div class="lang-menu" id="langMenu">
+        <button class="lang-option active" data-lang="ru" type="button">???? Русский</button>
+        <button class="lang-option" data-lang="kz" type="button">???? ?аза?ша</button>
+        <button class="lang-option" data-lang="en" type="button">???? English</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== CABINET DRAWER ===== -->
+  <div class="cabinet-backdrop" id="cabinetBackdrop"></div>
+  <aside class="cabinet-drawer" id="cabinetDrawer" aria-hidden="true">
+    <div class="cabinet-head">
+      <h3 class="cabinet-title">Личный кабинет</h3>
+      <button class="cabinet-close" id="cabinetClose" type="button"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- Cabinet tabs -->
+    <div class="cab-tabs">
+      <button class="cab-tab active" data-panel="panelProfile">Профиль</button>
+      <button class="cab-tab" data-panel="panelPets">Питомцы</button>
+      <button class="cab-tab" data-panel="panelBookings">Записи</button>
+      <button class="cab-tab" data-panel="panelPartner" id="cabTabPartner" style="display:none;">Партнёр</button>
+    </div>
+
+    <!-- Profile panel -->
+    <div class="cab-panel active" id="panelProfile">
+      <div class="cab-card">
+        <div class="cab-row"><span class="cab-label">Имя</span><span class="cab-value" id="profileName">—</span></div>
+        <div class="cab-row"><span class="cab-label">Телефон</span><span class="cab-value" id="profilePhone">—</span>
+        </div>
+        <div class="cab-row"><span class="cab-label">Роль</span><span class="cab-value" id="profileRole">—</span></div>
+        <div class="cab-row">
+          <span class="cab-label">Город</span>
+          <select class="form-input form-select" id="profileCitySelect" onchange="updateUserCity()"
+            style="max-width:180px;padding:4px 8px;font-size:0.85rem;">
+            <option value="Astana">Астана</option>
+            <option value="Almaty">Алматы</option>
+            <option value="Shymkent">Шымкент</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" style="margin-top:12px;width:100%;" onclick="logout()"><i
+          class="fas fa-sign-out-alt"></i> Выйти из аккаунта</button>
+    </div>
+
+    <!-- Pets panel -->
+    <div class="cab-panel" id="panelPets">
+      <div id="petsList"></div>
+      <div class="cab-section-title" style="margin-top:20px;">Добавить питомца</div>
+      <form id="addPetForm" class="cab-card" style="display:grid;gap:10px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <input class="form-input" name="petName" placeholder="Имя питомца" required />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <input class="form-input" name="petBreed" placeholder="Порода" required />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <input class="form-input" name="petAvatarUrl" placeholder="Ссылка на аватар (необязательно)" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="display:block;font-size:0.8rem;color:rgba(255,255,255,0.65);margin-bottom:6px;">или загрузите фото аватара</label>
+          <input class="form-input" id="addPetAvatarFile" type="file" accept="image/*" />
+        </div>
+        <div style="display:flex;gap:10px;">
+          <div class="form-group" style="margin-bottom:0;flex:1;">
+            <input class="form-input" name="petAge" type="number" placeholder="Возраст" min="0" required />
+          </div>
+          <div class="form-group" style="margin-bottom:0;flex:1;">
+            <input class="form-input" name="petWeight" type="number" step="0.1" placeholder="Вес (кг)" min="0"
+              required />
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="checkbox-container">
+            <input type="checkbox" name="hasGps" id="addPetGpsToggle">
+            <span class="checkmark"></span>
+            <span style="font-size:0.85rem;">Добавить GPS-трекинг</span>
+          </label>
+        </div>
+        <div id="gpsDeviceIdGroup" class="form-group" style="display:none;margin-bottom:0;">
+          <input class="form-input" name="deviceId" placeholder="ID устройства (напр. GPS-123)" />
+        </div>
+        <button class="btn btn-sm" type="submit" style="width:100%;">Добавить</button>
+      </form>
+    </div>
+
+    <!-- Bookings panel (owner) -->
+    <div class="cab-panel" id="panelBookings">
+      <div class="cab-section-title">Мои записи</div>
+      <div id="bookingsList"></div>
+    </div>
+
+    <!-- Partner panel -->
+    <div class="cab-panel" id="panelPartner">
+      <div class="cab-section-title">Записи ко мне</div>
+      <div id="partnerBookingsList"></div>
+    </div>
+  </aside>
+
+  <!-- ===== BOOKING MODAL (ADVANCED) ===== -->
+  <div class="modal-overlay" id="bookingModal" aria-hidden="true">
+    <div class="modal-card booking-modal-card" role="dialog" aria-modal="true" aria-labelledby="bookingModalTitle">
+      <div class="booking-modal-head">
+        <div class="modal-title" id="bookingModalTitle">Запись на прием</div>
+        <button class="cabinet-close" onclick="closeBookingModal()" type="button"><i
+            class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p style="color:rgba(255,255,255,0.7);margin-bottom:16px;font-size:0.9rem;" id="bookingServiceName"></p>
+
+      <!-- Booking Tabs -->
+      <div class="booking-tabs">
+        <button class="booking-tab active" data-tab="text" onclick="switchBookingTab('text')"><i class="fas fa-pen"></i>
+          Текст</button>
+        <button class="booking-tab" data-tab="photo" onclick="switchBookingTab('photo')"><i class="fas fa-camera"></i>
+          Фото</button>
+        <button class="booking-tab" data-tab="video" onclick="switchBookingTab('video')"><i class="fas fa-video"></i>
+          Видео</button>
+      </div>
+
+      <!-- TEXT FORM -->
+      <form id="bookingFormText" class="booking-form-content active">
+        <input type="hidden" name="serviceId" id="bookingServiceIdText">
+        <div class="form-group">
+          <label>Выберите питомца</label>
+          <div id="bookingPetCardsText" class="pet-selector-grid"></div>
+          <input type="hidden" name="petSelect" id="bookingPetSelectText" required />
+        </div>
+        <div class="form-group">
+          <label>Дата и время</label>
+          <input class="form-input" type="datetime-local" name="bookingDate" required />
+        </div>
+        <div class="form-group">
+          <label>Комментарий</label>
+          <textarea class="form-input" name="comment" placeholder="Опишите проблему..." rows="3"></textarea>
+        </div>
+        <button class="btn" type="submit" style="width:100%;">Записаться</button>
+      </form>
+
+      <!-- PHOTO/VIDEO FORM (AI) -->
+      <form id="bookingFormMedia" class="booking-form-content">
+        <input type="hidden" name="serviceId" id="bookingServiceIdMedia">
+        <input type="hidden" name="mediaType" id="bookingMediaType" value="photo">
+        <div class="ai-analysis-intro">
+          <i class="fas fa-robot" style="font-size:32px;color:#00d2ff;margin-bottom:12px;"></i>
+          <p id="mediaModeHint">Загрузите фото питомца. PawAI проанализирует состояние и предложит диагноз.</p>
+        </div>
+
+        <div class="form-group">
+          <label>Выберите питомца</label>
+          <div id="bookingPetCardsMedia" class="pet-selector-grid"></div>
+          <input type="hidden" name="petSelect" id="bookingPetSelectMedia" />
+        </div>
+
+        <div class="media-upload-area" id="mediaUploadArea" onclick="document.getElementById('mediaInput').click()">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <span id="mediaUploadLabel">Нажмите для загрузки фото</span>
+          <input type="file" id="mediaInput" accept="image/*,video/*" hidden onchange="handleMediaUpload(this)">
+        </div>
+
+        <!-- Analysis Progress -->
+        <div id="aiAnalysisProgress" style="display:none;margin-top:20px;text-align:center;">
+          <div class="spinner" style="margin:0 auto 12px;"></div>
+          <p style="color:#00d2ff;">PawAI анализирует данные...</p>
+        </div>
+
+        <!-- Analysis Result -->
+        <div id="aiAnalysisResult"
+          style="display:none;margin-top:20px;background:rgba(0, 210, 255, 0.1);padding:15px;border-radius:12px;border:1px solid #00d2ff;">
+          <h4 style="color:#fff;margin-bottom:8px;"><i class="fas fa-check-circle"></i> Анализ завершен</h4>
+          <p id="aiResultText" style="color:rgba(255,255,255,0.8);font-size:0.9rem;margin-bottom:12px;"></p>
+          <button class="btn btn-sm" onclick="proceedToBookingFromAI()" type="button" style="width:100%;">Продолжить
+            запись</button>
+        </div>
+
+        <div class="form-group" style="margin-top:16px;">
+          <label>Дата и время</label>
+          <input class="form-input" type="datetime-local" name="bookingDate" required />
+        </div>
+        <div class="form-group">
+          <label>Комментарий</label>
+          <textarea class="form-input" name="comment" placeholder="Опишите проблему или допишите детали..." rows="3"></textarea>
+        </div>
+        <button class="btn" type="submit" style="width:100%;">Отправить заявку</button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ===== PAGE: HERO ===== -->
+  <section class="page-section active" id="hero" style="position:relative;">
+    <!-- Floating Particles -->
+    <div class="hero-particles">
+      <div class="particle" style="left:5%;animation-duration:15s;"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+    </div>
+    <div class="container" style="position:relative;z-index:1;">
+      <div class="hero-inner">
+        <div class="hero-content">
+          <h1>Забота о питомцах 24/7</h1>
+          <p>Экосистема услуг для питомцев: GPS-трекер, контроль здоровья, питание, дрессировка и онлайн-ветеринария
+            24/7</p>
+          <div class="feature-badges">
+            <span class="badge">? GPS-трекинг</span>
+            <span class="badge">? 24/7 Поддержка</span>
+            <span class="badge">? Контроль здоровья</span>
+            <span class="badge">? Личный кабинет</span>
+          </div>
+          <button class="btn btn-glow" id="heroCta" onclick="goToPage('auth')">?? Начать бесплатно</button>
+          <!-- Animated Counters -->
+          <div class="hero-stat-counter">
+            <div class="hero-counter-item">
+              <div class="hero-counter-number" data-target="50000">0</div>
+              <div class="hero-counter-label">Питомцев</div>
+            </div>
+            <div class="hero-counter-item">
+              <div class="hero-counter-number" data-target="500">0</div>
+              <div class="hero-counter-label">Клиник</div>
+            </div>
+            <div class="hero-counter-item">
+              <div class="hero-counter-number" data-target="98">0</div>
+              <div class="hero-counter-label">% Довольных</div>
+            </div>
+          </div>
+        </div>
+        <div class="stats-card reveal">
+          <div class="stat-row"><span class="stat-label">Доверие клиентов</span><span class="stat-value">98%</span>
+          </div>
+          <div class="stat-row"><span class="stat-label">Функций</span><span class="stat-value">14+</span></div>
+          <div class="stat-row"><span class="stat-label">Готовность MVP</span><span class="stat-value">Q2 2026</span>
+          </div>
+          <div class="stat-row"><span class="stat-label">Площадь обслуживания</span><span
+              class="stat-value">Астана</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PAGE: AUTH ===== -->
+  <section class="page-section" id="auth">
+    <div class="auth-container">
+      <h2 class="section-title">Добро пожаловать</h2>
+      <p class="section-subtitle">Войдите или создайте аккаунт</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Вход</button>
+        <button class="auth-tab" data-tab="register">Регистрация</button>
+      </div>
+
+      <!-- Login form -->
+      <form class="auth-form active" id="loginForm">
+        <div class="form-group">
+          <label>Телефон</label>
+          <input class="form-input" name="phone" type="tel" placeholder="+7XXXXXXXXXX" required />
+        </div>
+        <div class="form-group">
+          <label>Пароль</label>
+          <input class="form-input" name="password" type="password" placeholder="Ваш пароль" required />
+        </div>
+        <button class="btn" type="submit" style="width:100%;">Войти</button>
+        <div style="text-align:center;margin:16px 0 8px;color:rgba(255,255,255,0.5);font-size:0.85rem;">или</div>
+        <button type="button" class="btn btn-outline"
+          style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;"
+          onclick="signInWithGoogle()">
+          <svg width="20" height="20" viewBox="0 0 48 48">
+            <path fill="#EA4335"
+              d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+            <path fill="#4285F4"
+              d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+            <path fill="#FBBC05"
+              d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+            <path fill="#34A853"
+              d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+          </svg>
+          Войти через Google
+        </button>
+      </form>
+
+      <!-- Register form -->
+      <form class="auth-form" id="registerForm">
+        <div class="form-group">
+          <label>Имя</label>
+          <input class="form-input" name="uname" placeholder="Ваше имя" required />
+        </div>
+        <div class="form-group">
+          <label>Телефон</label>
+          <input class="form-input" name="phone" type="tel" placeholder="+7XXXXXXXXXX" required />
+        </div>
+        <div class="form-group">
+          <label>Пароль</label>
+          <input class="form-input" name="password" type="password" placeholder="Придумайте пароль" required />
+        </div>
+        <div class="form-group">
+          <label>Роль</label>
+          <select class="form-input form-select" name="role">
+            <option value="OWNER">Владелец питомца</option>
+            <option value="PARTNER">Партнёр (клиника/салон)</option>
+          </select>
+        </div>
+        <button class="btn" type="submit" style="width:100%;">Зарегистрироваться</button>
+        <div style="text-align:center;margin:16px 0 8px;color:rgba(255,255,255,0.5);font-size:0.85rem;">или</div>
+        <button type="button" class="btn btn-outline"
+          style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;"
+          onclick="signInWithGoogle()">
+          <svg width="20" height="20" viewBox="0 0 48 48">
+            <path fill="#EA4335"
+              d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+            <path fill="#4285F4"
+              d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+            <path fill="#FBBC05"
+              d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+            <path fill="#34A853"
+              d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+          </svg>
+          Зарегистрироваться через Google
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===== PAGE: SERVICES HUB ===== -->
+  <section class="page-section" id="services">
+    <div class="container">
+      <h2 class="section-title">Услуги PawVerse</h2>
+      <p class="section-subtitle">Выберите нужную услугу для вашего питомца</p>
+      <div class="service-hub-grid">
+        <!-- Nutrition Card -->
+        <div class="service-hub-card" onclick="goToPage('nutrition')">
+          <div class="shc-icon"><i class="fas fa-utensils"></i></div>
+          <h3 class="shc-title">Питание</h3>
+          <p class="shc-desc">Дневник питания вашего питомца. Отслеживайте калории, БЖУ и получайте рекомендации от
+            ИИ-ассистента.</p>
+          <button class="btn btn-sm shc-btn">Перейти <i class="fas fa-arrow-right"></i></button>
+        </div>
+        <!-- Training Card -->
+        <div class="service-hub-card" onclick="goToPage('training')">
+          <div class="shc-icon"><i class="fas fa-graduation-cap"></i></div>
+          <h3 class="shc-title">Дрессировка</h3>
+          <p class="shc-desc">Обучающие видео по дрессировке кошек и собак в мультяшном стиле с субтитрами на 3 языках.
+          </p>
+          <button class="btn btn-sm shc-btn">Перейти <i class="fas fa-arrow-right"></i></button>
+        </div>
+        <!-- Clinic Services Card -->
+        <div class="service-hub-card" onclick="goToPage('clinicServices')">
+          <div class="shc-icon"><i class="fas fa-stethoscope"></i></div>
+          <h3 class="shc-title">Услуги клиник</h3>
+          <p class="shc-desc">Запишитесь на приём к ветеринару, грумеру или в зоогостиницу в вашем городе.</p>
+          <button class="btn btn-sm shc-btn">Перейти <i class="fas fa-arrow-right"></i></button>
+        </div>
+        <!-- GPS Tracking Hub Card -->
+        <div class="service-hub-card reveal" onclick="goToPage('tracking')">
+          <div class="shc-icon"><i class="fas fa-map-marker-alt"></i></div>
+          <h3 class="shc-title">Отслеживание</h3>
+          <p class="shc-desc">Следите за местоположением ваших питомцев в реальном времени с помощью GPS-ошейника.</p>
+          <button class="btn btn-sm shc-btn">Перейти <i class="fas fa-arrow-right"></i></button>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PAGE: NUTRITION DIARY ===== -->
+  <section class="page-section" id="nutrition">
+    <div class="container">
+      <button class="back-btn" onclick="goToPage('services')"><i class="fas fa-arrow-left"></i> Назад к услугам</button>
+      <h2 class="section-title">??? Дневник питания</h2>
+      <p class="section-subtitle">Отслеживайте рацион вашего питомца и получайте рекомендации</p>
+
+      <!-- Pet Selector -->
+      <div class="nutrition-controls">
+        <div class="form-group" style="margin-bottom:0;flex:1;">
+          <label>Выберите питомца</label>
+          <div id="nutritionPetCards" class="pet-selector-grid"></div>
+          <input type="hidden" id="nutritionPetSelect" onchange="loadNutrition()" />
+        </div>
+      </div>
+
+      <!-- Add Food Form -->
+      <form id="nutritionForm" class="nutrition-form" style="display:none;">
+        <h3 class="nutrition-form-title">Добавить запись</h3>
+        <div class="nutrition-form-grid">
+          <div class="form-group" style="margin-bottom:0; position:relative;">
+            <label>Название корма</label>
+            <input class="form-input" name="foodName" id="foodNameInput" placeholder="Например, Royal Canin" required
+              autocomplete="off" />
+            <div id="suggestBox" class="suggest-box"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Граммы</label>
+            <input class="form-input" name="grams" id="gramsInput" type="number" step="0.1" placeholder="100" min="0" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Калории (ккал)</label>
+            <input class="form-input" name="calories" id="caloriesInput" type="number" step="0.1" placeholder="350"
+              min="0" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Белки (г)</label>
+            <input class="form-input" name="protein" id="proteinInput" type="number" step="0.1" placeholder="25"
+              min="0" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Жиры (г)</label>
+            <input class="form-input" name="fat" id="fatInput" type="number" step="0.1" placeholder="12" min="0" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Углеводы (г)</label>
+            <input class="form-input" name="carbs" id="carbsInput" type="number" step="0.1" placeholder="40" min="0" />
+          </div>
+        </div>
+        <div id="feedProfileCard" class="feed-profile-card" style="display:none;"></div>
+        <button class="btn" type="submit" style="width:100%;margin-top:16px;">Добавить запись</button>
+      </form>
+
+      <!-- Macro Rings Summary -->
+      <div id="nutritionSummary" class="macro-rings-container" style="display:none;">
+        <div class="macro-ring-item" id="ringCalories">
+          <div class="ring-svg-wrapper">
+            <svg viewBox="0 0 100 100">
+              <circle class="ring-bg" cx="50" cy="50" r="45"></circle>
+              <circle class="ring-progress" cx="50" cy="50" r="45"
+                style="stroke-dasharray: 283; stroke-dashoffset: 283;"></circle>
+            </svg>
+            <div class="ring-text">
+              <span class="ring-value" id="totalCalories">0</span>
+              <span class="ring-label">ккал</span>
+            </div>
+          </div>
+          <div class="macro-info">Калории</div>
+        </div>
+        <div class="macro-ring-item" id="ringProtein">
+          <div class="ring-svg-wrapper">
+            <svg viewBox="0 0 100 100">
+              <circle class="ring-bg" cx="50" cy="50" r="45"></circle>
+              <circle class="ring-progress macro-p" cx="50" cy="50" r="45"
+                style="stroke-dasharray: 283; stroke-dashoffset: 283;"></circle>
+            </svg>
+            <div class="ring-text">
+              <span class="ring-value" id="totalProtein">0</span>
+              <span class="ring-label">г</span>
+            </div>
+          </div>
+          <div class="macro-info">Белки</div>
+        </div>
+        <div class="macro-ring-item" id="ringFat">
+          <div class="ring-svg-wrapper">
+            <svg viewBox="0 0 100 100">
+              <circle class="ring-bg" cx="50" cy="50" r="45"></circle>
+              <circle class="ring-progress macro-f" cx="50" cy="50" r="45"
+                style="stroke-dasharray: 283; stroke-dashoffset: 283;"></circle>
+            </svg>
+            <div class="ring-text">
+              <span class="ring-value" id="totalFat">0</span>
+              <span class="ring-label">г</span>
+            </div>
+          </div>
+          <div class="macro-info">Жиры</div>
+        </div>
+        <div class="macro-ring-item" id="ringCarbs">
+          <div class="ring-svg-wrapper">
+            <svg viewBox="0 0 100 100">
+              <circle class="ring-bg" cx="50" cy="50" r="45"></circle>
+              <circle class="ring-progress macro-c" cx="50" cy="50" r="45"
+                style="stroke-dasharray: 283; stroke-dashoffset: 283;"></circle>
+            </svg>
+            <div class="ring-text">
+              <span class="ring-value" id="totalCarbs">0</span>
+              <span class="ring-label">г</span>
+            </div>
+          </div>
+          <div class="macro-info">Углеводы</div>
+        </div>
+      </div>
+
+      <!-- Food Log Table -->
+      <div id="nutritionLog" class="nutrition-log" style="display:none;">
+        <h3>Записи питания</h3>
+        <div id="nutritionEntries"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PAGE: TRAINING ===== -->
+  <section class="page-section" id="training">
+    <div class="container">
+      <button class="back-btn" onclick="goToPage('services')"><i class="fas fa-arrow-left"></i> Назад к услугам</button>
+      <h2 class="section-title">?? Дрессировка</h2>
+      <p class="section-subtitle">Обучающие видео от экспертов PawVerse</p>
+
+      <!-- Category Selector -->
+      <div class="training-tabs">
+        <button class="training-tab active" data-category="dogs" onclick="switchTrainingCategory('dogs')">
+          <i class="fas fa-dog"></i> Собаки
+        </button>
+        <button class="training-tab" data-category="cats" onclick="switchTrainingCategory('cats')">
+          <i class="fas fa-cat"></i> Кошки
+        </button>
+      </div>
+
+      <!-- Video Grid -->
+      <div class="training-grid" id="trainingGrid"></div>
+    </div>
+  </section>
+
+  <!-- ===== PAGE: CLINIC SERVICES ===== -->
+  <section class="page-section" id="clinicServices">
+    <div class="container">
+      <button class="back-btn" onclick="goToPage('services')"><i class="fas fa-arrow-left"></i> Назад к услугам</button>
+      <h2 class="section-title">Услуги в вашем городе</h2>
+      <p class="section-subtitle">Запишитесь на услугу – выберите питомца и удобное время</p>
+
+
+
+      <div id="clinicMap" class="clinic-map"></div>
+      <div id="servicesGrid" class="services-grid"></div>
+    </div>
+  </section>
+
+  <!-- ===== PAGE: TRACKING ===== -->
+  <section class="page-section" id="tracking" style="display:none;">
+    <div class="container container-wide">
+      <button class="back-btn" onclick="goToPage('services')"><i class="fas fa-arrow-left"></i> Назад к услугам</button>
+      <div class="section-header">
+        <h2 class="section-title">GPS Отслеживание</h2>
+        <p class="section-subtitle">Следите за безопасностью ваших любимцев в реальном времени</p>
+      </div>
+
+      <div class="tracking-layout">
+        <div class="tracking-sidebar">
+          <div class="tracking-sidebar-header">
+            <h3>Активные устройства</h3>
+            <span class="online-indicator">Online</span>
+          </div>
+          <div id="trackingPetList" class="tracking-pet-list">
+            <!-- Pets with GPS appear here -->
+            <p class="empty-list-msg">Нет активных устройств. Добавьте GPS в профиле питомца.</p>
+          </div>
+        </div>
+        <div class="tracking-main">
+          <div id="trackingMap" class="tracking-map"></div>
+          <div class="map-controls">
+            <button class="map-btn" onclick="toggleHeatmap()"><i class="fas fa-fire"></i></button>
+            <button class="map-btn" onclick="recenterMap()"><i class="fas fa-crosshairs"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PawCoins Modal (Menu + Quiz) -->
+  <div class="modal" id="quizModal">
+    <div class="modal-content" id="quizModalContent" style="max-width:460px;">
+      <div class="modal-header">
+        <h2 id="quizTitle">?? PawCoins</h2>
+        <button class="close-btn"
+          onclick="document.getElementById('quizModal').classList.remove('active')">&times;</button>
+      </div>
+      <div id="quizPopupContent">
+        <!-- Loaded by JS: either coins menu or quiz questions -->
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- ===== PAWBOT CHAT WIDGET ===== -->
+  <div class="ai-chat-bubble" id="aiChatBubble" onclick="toggleAIChat()" style="display:none;">
+    <i class="fas fa-robot"></i>
+  </div>
+  <div class="ai-chat-window" id="aiChatWindow" style="display:none;">
+    <div class="ai-chat-header">
+      <div class="ai-chat-header-left">
+        <i class="fas fa-robot"></i>
+        <span>PawBot</span>
+      </div>
+      <button class="ai-chat-close" onclick="toggleAIChat()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="ai-chat-messages" id="aiChatMessages">
+      <div class="ai-msg ai-msg-bot">
+        <div class="ai-msg-avatar"><i class="fas fa-robot"></i></div>
+        <div class="ai-msg-text">Привет! ?? Я PawBot — ваш умный помощник! Спросите о питании, здоровье, дрессировке,
+          PawCoins или викторинах ??</div>
+      </div>
+    </div>
+    <div id="aiChatTyping" style="display:none;margin-left:55px;">
+      <div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>
+    <form class="ai-chat-input" id="aiChatForm" onsubmit="sendAIMessage(event)">
+      <input class="form-input" id="aiChatInput" placeholder="Задайте вопрос..." autocomplete="off" />
+      <button class="btn btn-sm" type="submit"><i class="fas fa-paper-plane"></i></button>
+    </form>
+  </div>
+
+  <!-- ===== PAGE: SERVICES ===== -->
+  <section class="page-section" id="services" style="display:none;">
+    <div class="container">
+      <h2 class="section-title">Ветеринарные услуги</h2>
+      <p class="section-subtitle">Найдите лучшие клиники и услуги рядом с вами</p>
+
+      <!-- MAP CONTAINER -->
+      <div id="clinicMap" class="clinic-map"></div>
+
+      <!-- SERVICES GRID -->
+      <div class="services-grid" id="servicesGrid">
+        <!-- Loaded by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PAGE: FEATURES ===== -->
+  <section class="page-section" id="features">
+    <div class="container">
+      <div class="two-col">
+        <div>
+          <h2>Инновационные функции</h2>
+          <p>Мы объединяем лучшие технологии GPS, AI-анализ и комплексный мониторинг здоровья вашего питомца в единой
+            платформе</p>
+          <p>Каждая функция разработана с учетом потребностей животных и их владельцев для обеспечения безопасности и
+            комфорта 24/7</p>
+          <div class="team-stat">
+            <div>
+              <div class="team-stat-value">6+</div>
+              <div class="team-stat-label">Ключевых функций</div>
+            </div>
+            <div>
+              <div class="team-stat-value">99%</div>
+              <div class="team-stat-label">Надежность</div>
+            </div>
+            <div>
+              <div class="team-stat-value">24/7</div>
+              <div class="team-stat-label">Поддержка</div>
+            </div>
+          </div>
+        </div>
+        <div class="stats-card">
+          <h3 style="margin-bottom:20px;font-size:1.3rem;">Возможности платформы</h3>
+          <div class="stat-row"><span class="stat-label">GPS-трекинг</span><span class="stat-value">?</span></div>
+          <div class="stat-row"><span class="stat-label">Мониторинг здоровья</span><span class="stat-value">?</span>
+          </div>
+          <div class="stat-row"><span class="stat-label">AI-ассистент</span><span class="stat-value">?</span></div>
+          <div class="stat-row"><span class="stat-label">История записей</span><span class="stat-value">?</span></div>
+          <div class="stat-row"><span class="stat-label">Аналитика данных</span><span class="stat-value">?</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== TESTIMONIALS ===== -->
+  <section class="page-section" id="testimonials" style="display:none;">
+    <div class="container">
+      <h2 class="section-title">Отзывы наших клиентов</h2>
+      <p class="section-subtitle">Что говорят владельцы питомцев о PawVerse</p>
+      <div class="testimonials-grid">
+        <div class="testimonial-card reveal">
+          <div class="testimonial-header">
+            <div class="testimonial-avatar">АК</div>
+            <div class="testimonial-info">
+              <h4>Айгуль К.</h4>
+              <span>?? Хозяйка лабрадора</span>
+            </div>
+          </div>
+          <div class="testimonial-stars">?????</div>
+          <div class="testimonial-text">"PawVerse полностью изменил мой подход к заботе о Барсике! GPS-трекер — это
+            спокойствие, а дневник питания помогает следить за рационом. Лучшее приложение!"</div>
+        </div>
+        <div class="testimonial-card reveal reveal-delay-1">
+          <div class="testimonial-header">
+            <div class="testimonial-avatar">ДМ</div>
+            <div class="testimonial-info">
+              <h4>Дамир М.</h4>
+              <span>?? Владелец кота</span>
+            </div>
+          </div>
+          <div class="testimonial-stars">?????</div>
+          <div class="testimonial-text">"Наконец-то всё в одном месте — записи к ветеринару, питание, дрессировка.
+            PawBot отвечает на все вопросы мгновенно. Рекомендую!"</div>
+        </div>
+        <div class="testimonial-card reveal reveal-delay-2">
+          <div class="testimonial-header">
+            <div class="testimonial-avatar">ЖН</div>
+            <div class="testimonial-info">
+              <h4>Жанна Н.</h4>
+              <span>?? Хозяйка шпица</span>
+            </div>
+          </div>
+          <div class="testimonial-stars">?????</div>
+          <div class="testimonial-text">"Удобная запись к ветклиникам Астаны прямо из приложения. Карта показывает все
+            ближайшие клиники. Викторина за PawCoins — отличная идея!"</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PAGE: ABOUT ===== -->
+  <section class="page-section" id="about">
+    <div class="container">
+      <div class="two-col">
+        <div>
+          <h2>О компании</h2>
+          <p>PawVerse Care — это проект команды ветеринаров, инженеров и любителей животных, которые верят, что забота о
+            питомцах должна быть доступной, современной и надежной.</p>
+          <p>Мы объединяем лучшие практики ветеринарной медицины с передовыми технологиями GPS, AI-анализом и удобными
+            мобильными сервисами.</p>
+          <div class="team-stat">
+            <div>
+              <div class="team-stat-value">10+</div>
+              <div class="team-stat-label">Лет опыта</div>
+            </div>
+            <div>
+              <div class="team-stat-value">500+</div>
+              <div class="team-stat-label">Клиник партнеров</div>
+            </div>
+            <div>
+              <div class="team-stat-value">50K+</div>
+              <div class="team-stat-label">Довольных питомцев</div>
+            </div>
+          </div>
+        </div>
+        <div class="stats-card">
+          <h3 style="margin-bottom:20px;font-size:1.3rem;">Наши преимущества</h3>
+          <div class="stat-row"><span class="stat-label">Опытная команда</span><span class="stat-value">?</span></div>
+          <div class="stat-row"><span class="stat-label">Технологии AI/ML</span><span class="stat-value">?</span></div>
+          <div class="stat-row"><span class="stat-label">Безопасность данных</span><span class="stat-value">?</span>
+          </div>
+          <div class="stat-row"><span class="stat-label">Интеграция с клиниками</span><span class="stat-value">?</span>
+          </div>
+          <div class="stat-row"><span class="stat-label">24/7 поддержка</span><span class="stat-value">?</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PAGE: CONTACT ===== -->
+  <section class="page-section" id="contact">
+    <div class="container">
+      <h2 class="section-title">Свяжитесь с нами</h2>
+      <p class="section-subtitle">Наша команда всегда готова помочь</p>
+      <div class="contacts-wrapper">
+        <div class="contact-card">
+          <div class="contact-icon"><i class="fas fa-phone"></i></div>
+          <div class="contact-title">Телефон</div>
+          <div class="contact-value">+7 (900) 000-00-00</div>
+          <p style="margin-top:12px;color:rgba(255,255,255,0.7);font-size:0.9rem;">Доступно 24/7</p>
+        </div>
+        <div class="contact-card">
+          <div class="contact-icon"><i class="fas fa-envelope"></i></div>
+          <div class="contact-title">Email</div>
+          <div class="contact-value">hello@pawverse.care</div>
+          <p style="margin-top:12px;color:rgba(255,255,255,0.7);font-size:0.9rem;">Ответ в течение часа</p>
+        </div>
+        <div class="contact-card">
+          <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+          <div class="contact-title">Локация</div>
+          <div class="contact-value">Астана, Казахстан</div>
+          <p style="margin-top:12px;color:rgba(255,255,255,0.7);font-size:0.9rem;">Офис в центре</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <footer class="site-footer" id="siteFooter">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h3>🐾 PawVerse Care</h3>
+        <p>Экосистема заботы о ваших питомцах. GPS-трекинг, ветеринария, питание и дрессировка — всё в одном месте.</p>
+        <div class="footer-socials">
+          <a href="#" class="footer-social-icon"><i class="fab fa-instagram"></i></a>
+          <a href="#" class="footer-social-icon"><i class="fab fa-telegram"></i></a>
+          <a href="#" class="footer-social-icon"><i class="fab fa-youtube"></i></a>
+          <a href="#" class="footer-social-icon"><i class="fab fa-tiktok"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Платформа</h4>
+        <a href="#" onclick="goToPage('services');return false;">Услуги</a>
+        <a href="#" onclick="goToPage('features');return false;">Функции</a>
+        <a href="#" onclick="goToPage('training');return false;">Дрессировка</a>
+        <a href="#" onclick="goToPage('nutrition');return false;">Питание</a>
+      </div>
+      <div class="footer-col">
+        <h4>Компания</h4>
+        <a href="#" onclick="goToPage('about');return false;">О нас</a>
+        <a href="#" onclick="goToPage('contact');return false;">Контакты</a>
+        <a href="#">Карьера</a>
+        <a href="#">Блог</a>
+      </div>
+      <div class="footer-col">
+        <h4>Поддержка</h4>
+        <a href="#">FAQ</a>
+        <a href="#">Помощь</a>
+        <a href="#">Политика</a>
+        <a href="#" onclick="goToPage('contact');return false;">Обратная связь</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      © 2026 PawVerse Care. Made with <span>❤️</span> in Kazakhstan 🇰🇿
+    </div>
+  </footer>
+
+  <!-- ===== WELCOME ONBOARDING MODAL ===== -->
+  <div class="welcome-modal-overlay" id="welcomeModal" style="display:none;">
+    <div class="welcome-modal">
+      <div class="welcome-emoji">??</div>
+      <div class="welcome-title">Добро пожаловать в PawVerse!</div>
+      <p style="color:rgba(255,255,255,0.6);font-size:0.92rem;line-height:1.6;">Ваш персональный помощник для заботы о
+        питомцах</p>
+      <div class="welcome-features">
+        <div class="welcome-feature"><span class="welcome-feature-icon">??</span> GPS-трекинг</div>
+        <div class="welcome-feature"><span class="welcome-feature-icon">??</span> Ветеринария</div>
+        <div class="welcome-feature"><span class="welcome-feature-icon">???</span> Питание</div>
+        <div class="welcome-feature"><span class="welcome-feature-icon">??</span> Дрессировка</div>
+        <div class="welcome-feature"><span class="welcome-feature-icon">??</span> PawBot AI</div>
+        <div class="welcome-feature"><span class="welcome-feature-icon">??</span> PawCoins</div>
+      </div>
+      <button class="btn btn-glow" onclick="closeWelcomeModal()" style="width:100%;">Начать! ??</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
+
+

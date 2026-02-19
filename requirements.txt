@@ -1,0 +1,2 @@
+ultralytics>=8.0.0
+polars>=1.0.0
