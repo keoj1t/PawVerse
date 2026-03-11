@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 require("dotenv").config();
 
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8541662215:AAF6tg24GbcA26T0xH7IQbxsWAMkVKdULto";
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const prisma = new PrismaClient();
 
